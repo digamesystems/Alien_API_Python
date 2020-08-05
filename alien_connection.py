@@ -31,9 +31,8 @@ class AlienConnection(object):
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((ipaddress, port))
             self.connected = True
-            print("Connected: {0}".format(self.connected))
+            print("Connected:","{0}".format(self.connected))
             s = self.receive()
-            print("received: {0}".format(s))
             if "later." in s:
                 raise "Trouble Connecting to #{0}. (Someone else is talking to the reader.)".format(ipaddress)
         except RuntimeError:
@@ -52,6 +51,8 @@ class AlienConnection(object):
             packet = ''.join(s)
             packet = packet.strip()
 
+            print("Received: ", packet)
+
             if 'Goodbye!' in packet:
                 # Response to Quit, so socket will be automatically closed
                 self.close(False)
@@ -61,9 +62,11 @@ class AlienConnection(object):
             return self.sock.recv(1024)
 
     def send(self, msg=""):
+        print ("Sending... {}".format(msg))
         if not self.connected:
             raise Exception("Not Connected to Reader")
         self.sock.send("\1{0}\r\n".format(msg))
+        print ("Sent: ", msg)
 
     def send_receive(self, msg="", wait_for_null=True, timeout=40):
         if not self.connected:
@@ -74,8 +77,10 @@ class AlienConnection(object):
     def _login(self, username="alien", password="password"):
         if self.connected:
             self.sock.send("{0}\r\n".format(username))
+            print("Sent: ", username)
             self.receive()
             self.sock.send("{0}\r\n".format(password))
+            print("Sent: ", password)
             s = self.receive()
 
             if 'Error:' in s:
@@ -99,5 +104,12 @@ class AlienConnection(object):
             self.connected = False
 
 ac = AlienConnection()
-
+print "***************************************************"
 ac.open()
+ac.send_receive("Readername?")
+ac.send_receive("Readerversion?")
+
+while True:
+    cmd = raw_input("Alien>")
+    ac.send_receive("{0}\r\n".format(cmd))
+
